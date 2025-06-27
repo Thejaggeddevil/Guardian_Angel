@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "49466016320",
+    "project_id": "guardian-angel-9a550",
+    "storage_bucket": "guardian-angel-9a550.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:49466016320:android:c3a1d23e968ea4c185d5a5",
+        "android_client_info": {
+          "package_name": "com.mansi.guardianangel"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD8GDz4M3INqPK-4801BaBCWbsvFlYrGdQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
