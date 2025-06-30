@@ -4,6 +4,8 @@ import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -19,11 +21,10 @@ import com.google.firebase.auth.FirebaseAuth
 @Composable
 fun AppDrawer(
     navController: NavController,
-
-    closeDrawer: () -> Unit // Call this to close drawer after action
+    closeDrawer: () -> Unit,
+    onItemSelected: (String) -> Unit
 ) {
     val context = LocalContext.current
-
 
     Column(
         modifier = Modifier
@@ -31,33 +32,47 @@ fun AppDrawer(
             .background(Color(0xFFE8F5E9))
             .padding(16.dp)
     ) {
-        Text(
-            "←",
-            style = MaterialTheme.typography.headlineMedium,
-            fontSize = 36.sp,
-            modifier = Modifier.clickable { closeDrawer() }
+        Icon(
+            imageVector = Icons.Default.ArrowBack,
+            contentDescription = "Close Drawer",
+            tint = Color(0xFF1A1B41),
+            modifier = Modifier
+                .size(36.dp)
+                .clickable { closeDrawer() }
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
         DrawerItem("🕘 History") {
             navController.navigate("history")
-
+            closeDrawer()
+            onItemSelected("history")
         }
+
         DrawerItem("⚙️ Settings") {
             navController.navigate("settings")
             closeDrawer()
-        }
-        DrawerItem("🚪 Log out") {
-            FirebaseAuth.getInstance().signOut()
-            (context as? Activity)?.finish()
-            context.startActivity(context.packageManager.getLaunchIntentForPackage(context.packageName))
+            onItemSelected("settings")
         }
 
+        DrawerItem("🚪 Log out") {
+            FirebaseAuth.getInstance().signOut()
+            navController.navigate("login") {
+                popUpTo(0) { inclusive = true } // clears backstack
+            }
+        }
+        DrawerItem("💬 Chatbot") {
+            navController.navigate("chatbot")
+            closeDrawer()
+        }
+
+
         Spacer(modifier = Modifier.weight(1f))
+
         Text(
-            "Terms and conditions",
+            text = "Terms and Conditions",
             fontSize = 15.sp,
+            color = Color.Gray,
             modifier = Modifier.padding(bottom = 12.dp),
             style = MaterialTheme.typography.labelMedium
         )
@@ -74,14 +89,16 @@ fun DrawerItem(title: String, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(vertical = 20.dp),
+            .padding(vertical = 16.dp),
         style = MaterialTheme.typography.bodyLarge
     )
 }
 
-@Preview(showBackground = true)
-@Composable
-fun DrawerPreview() {
-// Dummy preview without real nav controller
-    AppDrawer(navController = androidx.navigation.compose.rememberNavController()) {}
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun DrawerPreview() {
+//    AppDrawer(
+//        navController = androidx.navigation.compose.rememberNavController(),
+//        closeDrawer = {}
+//    )
+//}

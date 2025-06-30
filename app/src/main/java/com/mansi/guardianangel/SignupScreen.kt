@@ -6,37 +6,44 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.*
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.mansi.guardianangel.data.PrefsManager
+import com.mansi.guardianangel.AppViewModel
+import com.mansi.guardianangel.LocaleHelper
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SignupScreen(navController: NavController) {
+fun SignupScreen(
+    navController: NavController,
+    viewModel: AppViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+) {
+    val context = LocalContext.current
+
     val fullName = remember { mutableStateOf("") }
     val phoneNumber = remember { mutableStateOf("") }
     val email = remember { mutableStateOf("") }
-    val language = remember { mutableStateOf("English") }
     val password = remember { mutableStateOf("") }
     val confirmPassword = remember { mutableStateOf("") }
+
     val passwordVisible = remember { mutableStateOf(false) }
     val confirmPasswordVisible = remember { mutableStateOf(false) }
-    val context = LocalContext.current
 
     val languageOptions = listOf("English", "Hindi")
+    var expanded by remember { mutableStateOf(false) }
+    val language = remember { mutableStateOf("English") }
 
     Column(
         modifier = Modifier
@@ -46,13 +53,7 @@ fun SignupScreen(navController: NavController) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "Create Account",
-            fontSize = 24.sp,
-            color = Color(0xFF1A1B41),
-            fontWeight = FontWeight.Bold
-        )
-
+        Text("Create Account", fontSize = 24.sp, color = Color(0xFF1A1B41), fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(24.dp))
 
         OutlinedTextField(
@@ -87,8 +88,6 @@ fun SignupScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        var expanded by remember { mutableStateOf(false) }
-
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { expanded = !expanded }
@@ -99,33 +98,22 @@ fun SignupScreen(navController: NavController) {
                 onValueChange = {},
                 label = { Text("Preferred Language") },
                 leadingIcon = { Icon(Icons.Default.Language, contentDescription = null) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
                 modifier = Modifier.fillMaxWidth()
             )
-
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 languageOptions.forEach { selection ->
                     DropdownMenuItem(
                         text = { Text(selection) },
                         onClick = {
                             language.value = selection
-                            expanded = true
-
-                            // Save language to shared prefs
+                            expanded = false
                             val langCode = if (selection == "Hindi") "hi" else "en"
-                            val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-                            prefs.edit().putString("language", langCode).apply()
-
-                            // Update locale
+                            val isHindi = selection == "Hindi"
+                            PrefsManager.setLangPref(context, isHindi)
                             LocaleHelper.setLocale(context, langCode)
-
-                            // Restart activity to apply language
                             (context as? Activity)?.recreate()
                         }
-
                     )
                 }
             }
@@ -142,7 +130,7 @@ fun SignupScreen(navController: NavController) {
                 IconButton(onClick = { passwordVisible.value = !passwordVisible.value }) {
                     Icon(
                         imageVector = if (passwordVisible.value) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = "Toggle password visibility"
+                        contentDescription = "Toggle password"
                     )
                 }
             },
@@ -158,12 +146,10 @@ fun SignupScreen(navController: NavController) {
             label = { Text("Confirm Password") },
             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
             trailingIcon = {
-                IconButton(onClick = {
-                    confirmPasswordVisible.value = !confirmPasswordVisible.value
-                }) {
+                IconButton(onClick = { confirmPasswordVisible.value = !confirmPasswordVisible.value }) {
                     Icon(
                         imageVector = if (confirmPasswordVisible.value) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = "Toggle confirm password visibility"
+                        contentDescription = "Toggle confirm password"
                     )
                 }
             },
@@ -175,18 +161,47 @@ fun SignupScreen(navController: NavController) {
 
         Button(
             onClick = {
-                if (email.value.isBlank() || password.value.isBlank() || confirmPassword.value.isBlank()) {
-                    Toast.makeText(context, "Please fill all required fields.", Toast.LENGTH_SHORT).show()
+                if (fullName.value.isBlank() || phoneNumber.value.isBlank() || email.value.isBlank() ||
+                    password.value.isBlank() || confirmPassword.value.isBlank()
+                ) {
+                    Toast.makeText(context, "Please fill all fields.", Toast.LENGTH_SHORT).show()
                 } else if (password.value != confirmPassword.value) {
                     Toast.makeText(context, "Passwords do not match.", Toast.LENGTH_SHORT).show()
                 } else {
-                    FirebaseAuth.getInstance()
-                        .createUserWithEmailAndPassword(email.value, password.value)
+                    val auth = FirebaseAuth.getInstance()
+                    val firestore = FirebaseFirestore.getInstance()
+
+                    auth.createUserWithEmailAndPassword(email.value, password.value)
                         .addOnCompleteListener { task ->
                             if (task.isSuccessful) {
-                                Toast.makeText(context, "Sign up successful!", Toast.LENGTH_SHORT).show()
+                                val uid = auth.currentUser?.uid ?: return@addOnCompleteListener
+                                val userData = hashMapOf(
+                                    "uid" to uid,
+                                    "name" to fullName.value,
+                                    "email" to email.value,
+                                    "phone" to phoneNumber.value,
+                                    "language" to if (language.value == "Hindi") "hi" else "en",
+                                    "createdAt" to System.currentTimeMillis()
+                                )
+
+                                firestore.collection("users").document(uid)
+                                    .set(userData)
+                                    .addOnSuccessListener {
+                                        viewModel.setUsername(fullName.value)
+                                        Toast.makeText(context, "Signup successful!", Toast.LENGTH_SHORT).show()
+                                        navController.navigate("home") {
+                                            popUpTo(0) { inclusive = true }
+                                        }
+                                    }
+                                    .addOnFailureListener {
+                                        Toast.makeText(context, "Firestore failed: ${it.message}", Toast.LENGTH_LONG).show()
+                                    }
                             } else {
-                                Toast.makeText(context, "Sign up failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                                Toast.makeText(
+                                    context,
+                                    "Signup failed: ${task.exception?.message}",
+                                    Toast.LENGTH_LONG
+                                ).show()
                             }
                         }
                 }
@@ -196,23 +211,17 @@ fun SignupScreen(navController: NavController) {
                 .fillMaxWidth()
                 .height(50.dp)
         ) {
-            Text(text = "Sign Up", color = Color.White, fontWeight = FontWeight.Bold)
+            Text("Sign Up", color = Color.White, fontWeight = FontWeight.Bold)
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "By SignUp you are agreeing to our Terms and conditions",
+            "By signing up, you agree to our Terms and Conditions",
             fontSize = 12.sp,
             color = Color.Gray,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 8.dp)
         )
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun SignupScreenPreview() {
-    SignupScreen(navController = NavController(LocalContext.current))
 }

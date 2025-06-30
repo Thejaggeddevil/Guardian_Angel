@@ -19,9 +19,9 @@
     <string name="confirm_password">Confirm Password</string>
     <string name="signup">Sign Up</string>
     <string name="signup_failed">Signup Failed</string>
-    <string name="passwords_do_not_match">Passwords do not match</string>
+    <string name="passwords_do_not_match">Password must be at least 6 characters</string>
     <string name="terms_and_conditions">By SignUp you are agreeing to our Terms and conditions</string>
-
+    <string name="invalid_email">Please enter a valid email address</string>
     <string name="welcome">Welcome to Guardian Angel</string>
     <string name="sos_send">Send SOS</string>
     <string name="choose_contact">Choose Contact</string>

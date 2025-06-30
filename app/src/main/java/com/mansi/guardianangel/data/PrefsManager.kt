@@ -1,40 +1,78 @@
-package com.mansi.guardianangel
+package com.mansi.guardianangel.data
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.compose.runtime.mutableStateOf
-
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.mansi.guardianangel.SOsData
 
 object PrefsManager {
-    private lateinit var prefs: SharedPreferences
-    private const val CONTACTS_KEY = "emergency_contacts"
-    private const val DARK_MODE_KEY = "dark_mode"
-    private const val LANG_HINDI_KEY = "lang_hindi"
 
-    fun init(context: Context) {
-        prefs = context.getSharedPreferences("guardian_prefs", Context.MODE_PRIVATE)
-        AppViewModel.isDarkMode.value = prefs.getBoolean(DARK_MODE_KEY, false)
-        AppViewModel.isHindi.value = prefs.getBoolean(LANG_HINDI_KEY, false)
+    private const val PREF_NAME = "guardian_prefs"
+    private const val KEY_CONTACT_NUMBERS = "saved_contacts"
+    private const val KEY_CONTACT_NAMES = "saved_names"
+    private const val KEY_DARK_MODE = "dark_mode"
+    private const val KEY_LANGUAGE_HINDI = "lang_pref"
+    private const val KEY_SOS_HISTORY = "sos_history"
+
+    private fun getPrefs(context: Context): SharedPreferences {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
     }
 
-    fun saveThemePref(isDark: Boolean) {
-        prefs.edit().putBoolean(DARK_MODE_KEY, isDark).apply()
-    }
-
-    fun saveLangPref(isHindi: Boolean) {
-        prefs.edit().putBoolean(LANG_HINDI_KEY, isHindi).apply()
-    }
-
-    fun saveContacts(contacts: List<String>) {
+    // 🔒 Contacts List (only numbers)
+    fun saveContacts(context: Context, contacts: List<String>) {
         val json = Gson().toJson(contacts)
-        prefs.edit().putString(CONTACTS_KEY, json).apply()
+        getPrefs(context).edit().putString(KEY_CONTACT_NUMBERS, json).apply()
     }
 
-    fun getContacts(): List<String> {
-        val json = prefs.getString(CONTACTS_KEY, null) ?: return listOf("", "", "")
-        val type = object : TypeToken<List<String>>() {}.type
-        return Gson().fromJson(json, type)
+    fun getContacts(context: Context): List<String> {
+        val json = getPrefs(context).getString(KEY_CONTACT_NUMBERS, null)
+        return if (!json.isNullOrEmpty()) {
+            Gson().fromJson(json, object : TypeToken<List<String>>() {}.type)
+        } else emptyList()
+    }
+
+    // 🔒 Contact Names Map (number → name)
+    fun saveContactNames(context: Context, names: Map<String, String>) {
+        val json = Gson().toJson(names)
+        getPrefs(context).edit().putString(KEY_CONTACT_NAMES, json).apply()
+    }
+
+    fun getContactNames(context: Context): Map<String, String> {
+        val json = getPrefs(context).getString(KEY_CONTACT_NAMES, null)
+        return if (!json.isNullOrEmpty()) {
+            Gson().fromJson(json, object : TypeToken<Map<String, String>>() {}.type)
+        } else emptyMap()
+    }
+
+    // 🌓 Dark Mode Toggle
+    fun isDarkMode(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_DARK_MODE, false)
+    }
+
+    fun setDarkMode(context: Context, isDark: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_DARK_MODE, isDark).apply()
+    }
+
+    // 🌐 Language (Hindi = true, English = false)
+    fun getLangPref(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_LANGUAGE_HINDI, false)
+    }
+
+    fun setLangPref(context: Context, isHindi: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_LANGUAGE_HINDI, isHindi).apply()
+    }
+
+    // 🆘 SOS History Storage (local)
+    fun saveSOSHistory(context: Context, history: List<SOsData>) {
+        val json = Gson().toJson(history)
+        getPrefs(context).edit().putString(KEY_SOS_HISTORY, json).apply()
+    }
+
+    fun getSOSHistory(context: Context): List<SOsData> {
+        val json = getPrefs(context).getString(KEY_SOS_HISTORY, null)
+        return if (!json.isNullOrEmpty()) {
+            Gson().fromJson(json, object : TypeToken<List<SOsData>>() {}.type)
+        } else emptyList()
     }
 }

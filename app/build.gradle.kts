@@ -139,6 +139,12 @@ dependencies {
 
         implementation ("androidx.compose.animation:animation:1.6.0")
         implementation ("com.google.code.gson:gson:2.10.1")
+ //chatbot
+        //implementation("com.some.chatbot:library:1.0.0")
+        // ✅ OkHttp for networking
+        implementation("com.squareup.okhttp3:okhttp:4.12.0")
+        implementation("org.json:json:20210307") // for JSONObject, JSONArray
+
 
 
 

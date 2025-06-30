@@ -1,0 +1,3 @@
+[submodule "app/chatbot"]
+	path = app/chatbot
+	url = https://github.com/HimanshuSingh1531/guardian-gpt.git

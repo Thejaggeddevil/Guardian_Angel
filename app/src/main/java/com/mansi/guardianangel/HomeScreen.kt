@@ -1,9 +1,9 @@
 package com.mansi.guardianangel
 
-import android.app.Activity
 import android.content.Intent
+import android.location.LocationManager
 import android.net.Uri
-import android.provider.ContactsContract
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -13,6 +13,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
@@ -28,7 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-
+import com.mansi.guardianangel.data.PrefsManager
 
 @Composable
 fun ClickableWarning(onClick: () -> Unit) {
@@ -36,13 +37,11 @@ fun ClickableWarning(onClick: () -> Unit) {
         painter = painterResource(id = R.drawable.exclamation_mark),
         contentDescription = "Warning Icon",
         modifier = Modifier
-            .size(60.dp)
+            .size(80.dp)
             .clickable { onClick() },
         contentScale = ContentScale.Fit
     )
 }
-
-
 @Composable
 fun GuardianAngelMainScreen(
     onMenuClick: () -> Unit,
@@ -50,81 +49,168 @@ fun GuardianAngelMainScreen(
     viewModel: AppViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val userName = viewModel.username ?: "User"
-    val selectedContacts = remember { mutableStateListOf("", "", "") }
+    val userName by viewModel.username
 
-    val contactPickers = (0..2).map { index ->
-        rememberLauncherForActivityResult(ActivityResultContracts.PickContact()) { uri: Uri? ->
-            uri?.let {
-                val cursor = context.contentResolver.query(uri, null, null, null, null)
-                cursor?.use {
-                    if (it.moveToFirst()) {
-                        val nameIndex = it.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME)
-                        if (nameIndex >= 0) {
-                            val name = it.getString(nameIndex)
-                            selectedContacts[index] = name
-                        }
-                    }
-                }
+    val savedContacts = remember { mutableStateListOf<ContactPicker.ContactData>() }
+    var customName by remember { mutableStateOf("") }
+    var customNumber by remember { mutableStateOf("") }
+    var useSavedContact by remember { mutableStateOf(true) }
+
+    // 🔁 Location check
+    LaunchedEffect(Unit) {
+        val locationManager = context.getSystemService(LocationManager::class.java)
+        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) &&
+            !locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        ) {
+            Toast.makeText(context, "⚠️ Please enable location!", Toast.LENGTH_LONG).show()
+            context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            })
+        }
+    }
+
+    // Load saved contacts
+    LaunchedEffect(Unit) {
+        val contactStrings = PrefsManager.getContacts(context)
+        savedContacts.clear()
+        contactStrings.forEach { entry ->
+            val parts = entry.split("::")
+            if (parts.size == 2) {
+                savedContacts.add(ContactPicker.ContactData(name = parts[0], number = parts[1]))
             }
         }
     }
 
-    Column(
+    val contactPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickContact()
+    ) { uri: Uri? ->
+        val contact = ContactPicker.extractContact(context, uri)
+        contact?.let {
+            val exists = savedContacts.any { c -> c.number == it.number }
+            if (!exists && savedContacts.size < 1) {
+                savedContacts.add(it)
+                val formattedList = savedContacts.map { c -> "${c.name}::${c.number}" }
+                PrefsManager.saveContacts(context, formattedList)
+                FirebaseHelper.saveContact(it.number, it.name)
+            } else {
+                Toast.makeText(context, "⚠️ Contact already added or limit reached.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFE8F5E9))
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("GUARDIAN ANGEL", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1B41))
-            IconButton(onClick = { onMenuClick() }) {
-                Icon(Icons.Default.Menu, contentDescription = "Menu")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 32.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
+                .padding(bottom = 80.dp) // Leave space for bottom buttons
+                .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Hello, $userName",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1A1B41)
-            )
-
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                (0..2).forEach { index ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.8f)
-                            .height(56.dp)
-                            .border(1.dp, Color(0xFF1A1B41), shape = MaterialTheme.shapes.medium)
-                            .background(Color(0xFFE8F5E9), shape = MaterialTheme.shapes.large)
-                            .clickable { contactPickers[index].launch(null) }
-                            .padding(horizontal = 16.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Text(text = selectedContacts[index].ifEmpty { "Choose Contact" })
-                    }
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("GUARDIAN ANGEL", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1B41))
+                IconButton(onClick = onMenuClick) {
+                    Icon(Icons.Default.Menu, contentDescription = "Menu")
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
+            Text("Hello, $userName", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1B41))
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 🔄 Toggle
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Saved Contact", color = if (useSavedContact) Color(0xFFEF5350) else Color.Gray)
+                Switch(
+                    checked = useSavedContact,
+                    onCheckedChange = { useSavedContact = it },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color(0xFF1A1B41),
+                        uncheckedThumbColor = Color(0xFF1A1B41)
+                    )
+                )
+                Text("Custom Contact", color = if (!useSavedContact) Color(0xFFEF5350) else Color.Gray)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (useSavedContact) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    savedContacts.forEach { contact ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth(0.9f)
+                                .height(56.dp)
+                                .border(1.dp, Color(0xFF1A1B41), RoundedCornerShape(12.dp))
+                                .background(Color.White, RoundedCornerShape(12.dp))
+                                .padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = "📱 ${contact.name}", color = Color(0xFF1A1B41))
+                            IconButton(onClick = {
+                                savedContacts.remove(contact)
+                                val updatedList = savedContacts.map { "${it.name}::${it.number}" }
+                                PrefsManager.saveContacts(context, updatedList)
+                            }) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.dlt_icon),
+                                    contentDescription = "Delete",
+                                    modifier = Modifier.size(24.dp),
+                                    tint = Color.Unspecified
+                                )
+                            }
+                        }
+                    }
+
+                    if (savedContacts.size < 1) {
+                        Button(
+                            onClick = { contactPickerLauncher.launch(null) },
+                            modifier = Modifier.fillMaxWidth(0.5f)
+                        ) {
+                            Text("Add Contact")
+                        }
+                    }
+                }
+            } else {
+                Column {
+                    OutlinedTextField(
+                        value = customName,
+                        onValueChange = { customName = it },
+                        label = { Text("Custom Contact Name") },
+                        modifier = Modifier.fillMaxWidth(0.9f),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = customNumber,
+                        onValueChange = { customNumber = it },
+                        label = { Text("Custom Contact Number") },
+                        modifier = Modifier.fillMaxWidth(0.9f),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // 🚨 SOS
             Box(
                 modifier = Modifier
                     .size(200.dp)
@@ -132,17 +218,51 @@ fun GuardianAngelMainScreen(
                 contentAlignment = Alignment.Center
             ) {
                 ClickableWarning {
-                    Toast.makeText(context, "🚨 SOS Triggered", Toast.LENGTH_SHORT).show()
-                    AppViewModel.sendSOS(context, ArrayList(selectedContacts))
-                }
+                    val selected = if (useSavedContact && savedContacts.isNotEmpty()) {
+                        savedContacts.first()
+                    } else if (!useSavedContact && customNumber.isNotBlank()) {
+                        ContactPicker.ContactData(customName.ifBlank { "Unknown" }, customNumber)
+                    } else null
 
+                    if (selected == null) {
+                        Toast.makeText(context, "⚠️ No valid contact selected", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "🚨 SOS Triggered", Toast.LENGTH_SHORT).show()
+                        viewModel.sendSOS(
+                            context = context,
+                            contacts = listOf(selected.number)
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Send SOS", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1B41))
-                Text("Press button for help", color = Color(0xFF1A1B41), fontSize = 14.sp)
+            Text("Send SOS", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1B41))
+            Text("Press button for help", color = Color(0xFF1A1B41), fontSize = 14.sp)
+        }
+
+        // 🔘 Bottom Fixed Buttons
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .background(Color.White)
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Button(
+                onClick = { navController.navigate("home_ui") },
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF1A1B41))
+            ) {
+                Text("🏠 Home", color = Color.White)
+            }
+
+            Button(
+                onClick = { navController.navigate("chatbot") },
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF1A1B41))
+            ) {
+                Text("🤖 Chatbot", color = Color.White)
             }
         }
     }
