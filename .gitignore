@@ -17,3 +17,29 @@ google-services.json
 *.kt
 *.env
 *.key
+# Firebase
+google-services.json
+
+# Local config
+local.properties
+*.env
+*.keystore
+
+# Build folders
+/build
+/app/build
+/.gradle
+
+# OS junk
+.DS_Store
+*.iml
+.idea
+*.log
+
+# Keys
+*.key
+*.jks
+
+# Kotlin
+*.class
+*.kt~
