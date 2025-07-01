@@ -37,7 +37,7 @@ fun ClickableWarning(onClick: () -> Unit) {
         painter = painterResource(id = R.drawable.exclamation_mark),
         contentDescription = "Warning Icon",
         modifier = Modifier
-            .size(80.dp)
+            .size(120.dp)
             .clickable { onClick() },
         contentScale = ContentScale.Fit
     )
@@ -57,7 +57,12 @@ fun GuardianAngelMainScreen(
     var customNumber by remember { mutableStateOf("") }
     var useSavedContact by remember { mutableStateOf(true) }
 
-    // 🔁 Location check
+    // Load username when screen opens
+    LaunchedEffect(Unit) {
+        viewModel.loadUsername(context)
+    }
+
+    // Check location enabled
     LaunchedEffect(Unit) {
         val locationManager = context.getSystemService(LocationManager::class.java)
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) &&
@@ -94,7 +99,7 @@ fun GuardianAngelMainScreen(
                 PrefsManager.saveContacts(context, formattedList)
                 FirebaseHelper.saveContact(it.number, it.name)
             } else {
-                Toast.makeText(context, "⚠️ Contact already added", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Contact already added or max limit reached", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -107,11 +112,10 @@ fun GuardianAngelMainScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 80.dp) // Leave space for bottom buttons
+                .padding(bottom = 80.dp)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -124,9 +128,7 @@ fun GuardianAngelMainScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-
             Text("Hello, $userName", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1B41))
-
             Spacer(modifier = Modifier.height(24.dp))
 
             // 🔄 Toggle
@@ -162,11 +164,13 @@ fun GuardianAngelMainScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(text = "📱 ${contact.name}", color = Color(0xFF1A1B41))
+                            Text("📱 ${contact.name}", color = Color(0xFF1A1B41))
                             IconButton(onClick = {
                                 savedContacts.remove(contact)
                                 val updatedList = savedContacts.map { "${it.name}::${it.number}" }
                                 PrefsManager.saveContacts(context, updatedList)
+                                FirebaseHelper.deleteContact(context, contact.number)
+
                             }) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.dlt_icon),
@@ -238,12 +242,11 @@ fun GuardianAngelMainScreen(
             }
 
             Spacer(modifier = Modifier.height(9.dp))
-
             Text("Send SOS", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1B41))
             Text("Press button for help", color = Color(0xFF1A1B41), fontSize = 14.sp)
         }
 
-        // ✅ Bottom navigation (normal buttons, no animation)
+        // ✅ Bottom Nav
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -255,17 +258,15 @@ fun GuardianAngelMainScreen(
             Button(
                 onClick = { navController.navigate("home_ui") },
                 colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF1A1B41))
-
-
             ) {
-                Text("   🏠 Home   ", color = Color.White)
+                Text("🏠 Home", color = Color.White)
             }
 
             Button(
                 onClick = { navController.navigate("chatbot") },
                 colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF1A1B41))
             ) {
-                Text(" 🤖 Guardian-Gpt ", color = Color.White,)
+                Text("🤖 Guardian-GPT", color = Color.White)
             }
         }
     }

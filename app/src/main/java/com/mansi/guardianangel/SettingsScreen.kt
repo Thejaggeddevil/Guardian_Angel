@@ -1,14 +1,16 @@
 package com.mansi.guardianangel
 
-import android.app.Activity
 import android.content.Context
-import android.content.Intent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -31,22 +33,29 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.settings_title)) }
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                title = { Text(stringResource(R.string.settings_title)) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFFE8F5E9)
+                )
             )
         }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(Color(0xFFE8F5E9))
                 .padding(paddingValues)
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // 🔐 Account Info
             Text(text = stringResource(R.string.my_account), style = MaterialTheme.typography.titleMedium)
             Text(text = userEmail, style = MaterialTheme.typography.bodyLarge)
 
-            // 🌗 Dark Mode Toggle
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -61,34 +70,13 @@ fun SettingsScreen(
                 )
             }
 
-            // 🌐 Language Selection (Hindi / English)
             Text(text = stringResource(R.string.language), style = MaterialTheme.typography.titleMedium)
 
             LanguageOptionRow(context, "en", "English", !isHindi)
             LanguageOptionRow(context, "hi", "हिंदी", isHindi)
 
-            // 🛠 More Settings (Placeholder)
-            Text(text = "More Settings", style = MaterialTheme.typography.titleMedium)
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Notifications")
-                Switch(checked = true, onCheckedChange = {}) // just placeholder
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("About App")
-                Text("v1.0.0", style = MaterialTheme.typography.bodySmall)
-            }
-
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 🔓 Logout Button
             Button(
                 onClick = {
                     FirebaseAuth.getInstance().signOut()

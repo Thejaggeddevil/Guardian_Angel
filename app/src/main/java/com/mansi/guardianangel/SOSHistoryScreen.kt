@@ -29,75 +29,76 @@ fun SOSHistoryScreen(
     navController: NavController,
     viewModel: AppViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    val history = viewModel.sosHistory
+
     LaunchedEffect(Unit) {
         viewModel.loadSOSHistory()
     }
 
-    val context = LocalContext.current
-    val history = viewModel.sosHistory
-
-
-        Scaffold(
-            topBar = {
-                TopAppBar(
-
-                    navigationIcon = {
-                        IconButton(onClick = { navController.navigateUp() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                        }
-                    },
-
-                    title = { Text("SOS History", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                title = {
+                    Text("SOS History", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFFE8F5E9)
                 )
-
-
-            }
-        ) { padding ->
-            LazyColumn(
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize()
-                    .background(Color(0xFFE8F5E9))
-            ) {
-                items(history) { sos ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .background(Color(0xFFE8F5E9 )),
-                        elevation = CardDefaults.cardElevation(4.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("🕒 ${sos.timestamp}", fontWeight = FontWeight.SemiBold)
-                                IconButton(onClick = { viewModel.deleteSOSRecord(sos) }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Delete")
-                                }
+            )
+        }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .background(Color(0xFFE8F5E9))
+        ) {
+            items(history) { sos ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White
+                    ),
+                    elevation = CardDefaults.cardElevation(4.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("🕒 ${sos.timestamp}", fontWeight = FontWeight.SemiBold)
+                            IconButton(onClick = { viewModel.deleteSOSRecord(sos) }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete")
                             }
+                        }
 
-                            Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                            Text("📍 Location:", fontWeight = FontWeight.Bold)
-                            Text(
-                                text = sos.locationLink,
-                                color =Color(0xFF1A1B41),
-                                modifier = Modifier.clickable {
-                                    val mapIntent =
-                                        Intent(Intent.ACTION_VIEW, Uri.parse(sos.locationLink))
-                                    context.startActivity(mapIntent)
-                                }
-                            )
+                        Text("📍 Location:", fontWeight = FontWeight.Bold)
+                        Text(
+                            text = sos.locationLink,
+                            color = Color(0xFF1A1B41),
+                            modifier = Modifier.clickable {
+                                val mapIntent =
+                                    Intent(Intent.ACTION_VIEW, Uri.parse(sos.locationLink))
+                                context.startActivity(mapIntent)
+                            }
+                        )
 
-                            Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                            Text("📤 Sent to:", fontWeight = FontWeight.Bold)
-                            Column {
-                                sos.contacts.forEach {
-                                    Text("• $it")
-                                }
+                        Text("📤 Sent to:", fontWeight = FontWeight.Bold)
+                        Column {
+                            sos.contacts.forEach {
+                                Text("• $it")
                             }
                         }
                     }
@@ -105,4 +106,4 @@ fun SOSHistoryScreen(
             }
         }
     }
-
+}

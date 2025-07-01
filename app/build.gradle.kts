@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -18,6 +20,12 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        val localProperties = Properties()
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localProperties.load(localPropertiesFile.inputStream())
+            buildConfigField("String", "OPENAI_API_KEY", "\"${localProperties["OPENAI_API_KEY"]}\"")
+        }
     }
 
     buildTypes {
@@ -40,10 +48,11 @@ android {
         compose = true
 
     }
+    buildFeatures {
+        buildConfig = true
+    }
 }
-
-dependencies {
-
+dependencies{
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -146,6 +155,9 @@ dependencies {
         implementation("com.squareup.okhttp3:okhttp:4.12.0")
         implementation("org.json:json:20210307") // for JSONObject, JSONArray
 
+
+        //transition
+            implementation("com.google.accompanist:accompanist-navigation-animation:0.34.0")
 
 
 

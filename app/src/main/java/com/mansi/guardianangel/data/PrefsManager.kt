@@ -9,14 +9,25 @@ import com.mansi.guardianangel.SOsData
 object PrefsManager {
 
     private const val PREF_NAME = "guardian_prefs"
+
     private const val KEY_CONTACT_NUMBERS = "saved_contacts"
     private const val KEY_CONTACT_NAMES = "saved_names"
     private const val KEY_DARK_MODE = "dark_mode"
     private const val KEY_LANGUAGE_HINDI = "lang_pref"
     private const val KEY_SOS_HISTORY = "sos_history"
+    private const val KEY_USERNAME = "user_name" // ✅ NEW: Local Username Cache
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+    }
+
+    // ✅ Username (Local Fallback)
+    fun setUsername(context: Context, name: String) {
+        getPrefs(context).edit().putString(KEY_USERNAME, name).apply()
+    }
+
+    fun getUsername(context: Context): String {
+        return getPrefs(context).getString(KEY_USERNAME, "User") ?: "User"
     }
 
     // 🔒 Contacts List (only numbers)

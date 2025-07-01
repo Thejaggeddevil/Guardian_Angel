@@ -21,10 +21,7 @@ import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.mansi.guardianangel.data.PrefsManager
-import com.mansi.guardianangel.AppViewModel
-import com.mansi.guardianangel.LocaleHelper
-
-
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,6 +30,7 @@ fun SignupScreen(
     viewModel: AppViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     val fullName = remember { mutableStateOf("") }
     val phoneNumber = remember { mutableStateOf("") }
@@ -46,6 +44,8 @@ fun SignupScreen(
     val languageOptions = listOf("English", "Hindi")
     var expanded by remember { mutableStateOf(false) }
     val language = remember { mutableStateOf("English") }
+
+    var isLoading by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -90,7 +90,7 @@ fun SignupScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Language Picker
+        // 🌐 Language Picker
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { expanded = !expanded }
@@ -169,53 +169,61 @@ fun SignupScreen(
                     email.value.isBlank() || password.value.isBlank() || confirmPassword.value.isBlank()
                 ) {
                     Toast.makeText(context, "Please fill all fields.", Toast.LENGTH_SHORT).show()
-                } else if (password.value != confirmPassword.value) {
-                    Toast.makeText(context, "Passwords do not match.", Toast.LENGTH_SHORT).show()
-                } else {
-                    val auth = FirebaseAuth.getInstance()
-                    val firestore = FirebaseFirestore.getInstance()
-
-                    auth.createUserWithEmailAndPassword(email.value, password.value)
-                        .addOnCompleteListener { task ->
-                            if (task.isSuccessful) {
-                                val uid = auth.currentUser?.uid ?: return@addOnCompleteListener
-                                val userData = mapOf(
-                                    "uid" to uid,
-                                    "name" to fullName.value,
-                                    "email" to email.value,
-                                    "phone" to phoneNumber.value,
-                                    "language" to if (language.value == "Hindi") "hi" else "en",
-                                    "createdAt" to System.currentTimeMillis()
-                                )
-
-                                firestore.collection("users").document(uid)
-                                    .set(userData)
-                                    .addOnSuccessListener {
-                                        viewModel.setUsername(fullName.value) // 🔥 Update ViewModel
-                                        Toast.makeText(context, "Signup successful!", Toast.LENGTH_SHORT).show()
-                                        navController.navigate("home") {
-                                            popUpTo(0) { inclusive = true }
-                                        }
-                                    }
-                                    .addOnFailureListener {
-                                        Toast.makeText(context, "Firestore failed: ${it.message}", Toast.LENGTH_LONG).show()
-                                    }
-                            } else {
-                                Toast.makeText(
-                                    context,
-                                    "Signup failed: ${task.exception?.message}",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                            }
-                        }
+                    return@Button
                 }
+
+                if (password.value != confirmPassword.value) {
+                    Toast.makeText(context, "Passwords do not match.", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
+
+                isLoading = true
+
+                val auth = FirebaseAuth.getInstance()
+                val firestore = FirebaseFirestore.getInstance()
+
+                auth.createUserWithEmailAndPassword(email.value.trim(), password.value)
+                    .addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            val uid = auth.currentUser?.uid ?: return@addOnCompleteListener
+                            val userData = mapOf(
+                                "uid" to uid,
+                                "name" to fullName.value.trim(),
+                                "email" to email.value.trim(),
+                                "phone" to phoneNumber.value.trim(),
+                                "language" to if (language.value == "Hindi") "hi" else "en",
+                                "createdAt" to System.currentTimeMillis()
+                            )
+
+                            firestore.collection("users").document(uid)
+                                .set(userData)
+                                .addOnSuccessListener {
+                                    viewModel.setUsername(fullName.value.trim(), context) // ✅ Save directly
+                                    Toast.makeText(context, "Signup successful!", Toast.LENGTH_SHORT).show()
+                                    navController.navigate("home") {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                }
+                                .addOnFailureListener {
+                                    Toast.makeText(context, "Firestore failed: ${it.message}", Toast.LENGTH_LONG).show()
+                                }
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Signup failed: ${task.exception?.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                        isLoading = false
+                    }
             },
+            enabled = !isLoading,
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF5350)),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp)
         ) {
-            Text("Sign Up", color = Color.White, fontWeight = FontWeight.Bold)
+            Text(if (isLoading) "Please wait..." else "Sign Up", color = Color.White, fontWeight = FontWeight.Bold)
         }
 
         Spacer(modifier = Modifier.height(8.dp))

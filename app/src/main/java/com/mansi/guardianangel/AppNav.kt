@@ -1,22 +1,63 @@
 package com.mansi.guardianangel
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.google.accompanist.navigation.animation.AnimatedNavHost
+import com.google.accompanist.navigation.animation.composable
+import com.google.firebase.auth.FirebaseAuth
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun AppNav(viewModel: AppViewModel) {
     val navController = rememberNavController()
-    NavGraph(navController = navController, viewModel = viewModel)
+    val isLoggedIn = FirebaseAuth.getInstance().currentUser != null
+    val startDestination = if (isLoggedIn) "home" else "login"
+
+    NavGraph(
+        navController = navController,
+        viewModel = viewModel,
+        startDestination = startDestination
+    )
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun NavGraph(navController: NavHostController, viewModel: AppViewModel) {
-    NavHost(navController = navController, startDestination = "login") {
-
-        // 🔐 Auth Screens
+fun NavGraph(
+    navController: NavHostController,
+    viewModel: AppViewModel,
+    startDestination: String
+) {
+    AnimatedNavHost(
+        navController = navController,
+        startDestination = startDestination,
+        enterTransition = {
+            slideInHorizontally(
+                initialOffsetX = { it }, // 👉 Enter from right
+                animationSpec = tween(300)
+            )
+        },
+        exitTransition = {
+            slideOutHorizontally(
+                targetOffsetX = { -it }, // 👉 Exit to left
+                animationSpec = tween(300)
+            )
+        },
+        popEnterTransition = {
+            slideInHorizontally(
+                initialOffsetX = { -it }, // 👈 Back enter from left
+                animationSpec = tween(300)
+            )
+        },
+        popExitTransition = {
+            slideOutHorizontally(
+                targetOffsetX = { it }, // 👈 Back exit to right
+                animationSpec = tween(300)
+            )
+        }
+    ) {
         composable("login") {
             LoginScreen(navController = navController, viewModel = viewModel)
         }
@@ -25,24 +66,18 @@ fun NavGraph(navController: NavHostController, viewModel: AppViewModel) {
             SignupScreen(navController = navController, viewModel = viewModel)
         }
 
-        // 🏠 Main Home (with drawer access)
         composable("home") {
             GuardianAngelMainScreen(
-                onMenuClick = {
-                    navController.navigate("menudrawer")
-                },
+                onMenuClick = { navController.navigate("menudrawer") },
                 navController = navController,
                 viewModel = viewModel
             )
         }
 
-        // ⚙️ Menu Drawer
         composable("menudrawer") {
             AppDrawer(
                 navController = navController,
-                closeDrawer = {
-                    navController.popBackStack("home", inclusive = false)
-                },
+                closeDrawer = { navController.popBackStack("menudrawer", inclusive = false) },
                 onItemSelected = { selected ->
                     when (selected) {
                         "history" -> navController.navigate("history")
@@ -59,7 +94,6 @@ fun NavGraph(navController: NavHostController, viewModel: AppViewModel) {
             )
         }
 
-        // ⚙️ Settings and SOS History
         composable("settings") {
             SettingsScreen(navController = navController)
         }
@@ -68,17 +102,13 @@ fun NavGraph(navController: NavHostController, viewModel: AppViewModel) {
             SOSHistoryScreen(navController = navController)
         }
 
-        // 🤖 Chatbot screen (GPT)
         composable("chatbot") {
             ChatbotScreen(navController = navController)
         }
 
-        // 🏠 Home shortcut (no drawer, only from bottom nav)
         composable("home_ui") {
             GuardianAngelMainScreen(
-                onMenuClick = {
-                    navController.navigate("menudrawer")
-                },
+                onMenuClick = { navController.navigate("menudrawer") },
                 navController = navController,
                 viewModel = viewModel
             )
