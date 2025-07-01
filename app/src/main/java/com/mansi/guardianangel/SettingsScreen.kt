@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
-import com.mansi.guardianangel.data.PrefsManager
+import com.mansi.guardianangel.data.AppSettings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,11 +24,9 @@ fun SettingsScreen(
     viewModel: AppViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val isDarkMode by viewModel.isDarkMode
+    val isDarkMode = AppSettings.isDarkMode.value
+    val isHindi = AppSettings.isHindi.value
     val userEmail = FirebaseAuth.getInstance().currentUser?.email ?: "Anonymous"
-
-    val currentLangIsHindi = remember { mutableStateOf(PrefsManager.getLangPref(context)) }
-    val selectedLang = remember { mutableStateOf(if (currentLangIsHindi.value) "hi" else "en") }
 
     Scaffold(
         topBar = {
@@ -44,11 +42,11 @@ fun SettingsScreen(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // 🔐 Account Section
+            // 🔐 Account Info
             Text(text = stringResource(R.string.my_account), style = MaterialTheme.typography.titleMedium)
             Text(text = userEmail, style = MaterialTheme.typography.bodyLarge)
 
-            // 🌗 Dark Mode
+            // 🌗 Dark Mode Toggle
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -57,62 +55,19 @@ fun SettingsScreen(
                 Text(text = stringResource(R.string.dark_mode))
                 Switch(
                     checked = isDarkMode,
-                    onCheckedChange = { viewModel.toggleTheme(context) }
+                    onCheckedChange = {
+                        AppSettings.toggleDarkMode(context, it)
+                    }
                 )
             }
 
-            // 🌐 Language Selection via Radio Buttons
+            // 🌐 Language Selection (Hindi / English)
             Text(text = stringResource(R.string.language), style = MaterialTheme.typography.titleMedium)
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        selectedLang.value = "en"
-                        currentLangIsHindi.value = false
-                        PrefsManager.setLangPref(context, false)
-                        restartAppWithLocale(context, "en")
-                    }
-            ) {
-                RadioButton(
-                    selected = selectedLang.value == "en",
-                    onClick = {
-                        selectedLang.value = "en"
-                        currentLangIsHindi.value = false
-                        PrefsManager.setLangPref(context, false)
-                        restartAppWithLocale(context, "en")
-                    }
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("English")
-            }
+            LanguageOptionRow(context, "en", "English", !isHindi)
+            LanguageOptionRow(context, "hi", "हिंदी", isHindi)
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        selectedLang.value = "hi"
-                        currentLangIsHindi.value = true
-                        PrefsManager.setLangPref(context, true)
-                        restartAppWithLocale(context, "hi")
-                    }
-            ) {
-                RadioButton(
-                    selected = selectedLang.value == "hi",
-                    onClick = {
-                        selectedLang.value = "hi"
-                        currentLangIsHindi.value = true
-                        PrefsManager.setLangPref(context, true)
-                        restartAppWithLocale(context, "hi")
-                    }
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("हिंदी")
-            }
-
-            // 🚀 Placeholder Section
+            // 🛠 More Settings (Placeholder)
             Text(text = "More Settings", style = MaterialTheme.typography.titleMedium)
 
             Row(
@@ -120,7 +75,7 @@ fun SettingsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("Notifications")
-                Switch(checked = true, onCheckedChange = {}) // placeholder
+                Switch(checked = true, onCheckedChange = {}) // just placeholder
             }
 
             Row(
@@ -131,8 +86,9 @@ fun SettingsScreen(
                 Text("v1.0.0", style = MaterialTheme.typography.bodySmall)
             }
 
-            // 🔓 Logout
             Spacer(modifier = Modifier.height(32.dp))
+
+            // 🔓 Logout Button
             Button(
                 onClick = {
                     FirebaseAuth.getInstance().signOut()
@@ -149,11 +105,24 @@ fun SettingsScreen(
     }
 }
 
-// 🌀 Restart App with Locale
-fun restartAppWithLocale(context: Context, lang: String) {
-    LocaleHelper.setLocale(context, lang)
-    val intent = Intent(context, MainActivity::class.java)
-    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-    context.startActivity(intent)
-    (context as? Activity)?.finish()
+@Composable
+fun LanguageOptionRow(context: Context, langCode: String, label: String, selected: Boolean) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                AppSettings.toggleLanguage(context, langCode == "hi")
+            }
+            .padding(vertical = 4.dp)
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = {
+                AppSettings.toggleLanguage(context, langCode == "hi")
+            }
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(label)
+    }
 }

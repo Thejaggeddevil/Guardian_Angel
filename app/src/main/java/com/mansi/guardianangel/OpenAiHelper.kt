@@ -12,7 +12,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 object OpenAIHelper {
 
     // 🟢 Paste your API Key here
-    private const val apiKey = "Bearer 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"
+    private const val apiKey = "BuildConfig.CHATBOT_API_KEY"
 
     // ✅ OpenRouter DeepSeek Endpoint
     private const val apiUrl = "https://openrouter.ai/api/v1/chat/completions"

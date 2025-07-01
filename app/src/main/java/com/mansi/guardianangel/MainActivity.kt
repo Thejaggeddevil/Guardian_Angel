@@ -12,6 +12,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import com.mansi.guardianangel.data.AppSettings
 import com.mansi.guardianangel.data.PrefsManager
 import com.mansi.guardianangel.ui.theme.GuardianAngelTheme
 
@@ -26,6 +27,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppSettings.loadFromPrefs(this)
 
         // ✅ Load dark mode + language from SharedPreferences
         viewModel.isDarkMode.value = PrefsManager.isDarkMode(this)

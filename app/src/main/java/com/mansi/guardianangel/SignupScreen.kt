@@ -24,6 +24,8 @@ import com.mansi.guardianangel.data.PrefsManager
 import com.mansi.guardianangel.AppViewModel
 import com.mansi.guardianangel.LocaleHelper
 
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignupScreen(
@@ -88,6 +90,7 @@ fun SignupScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        // Language Picker
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { expanded = !expanded }
@@ -161,8 +164,9 @@ fun SignupScreen(
 
         Button(
             onClick = {
-                if (fullName.value.isBlank() || phoneNumber.value.isBlank() || email.value.isBlank() ||
-                    password.value.isBlank() || confirmPassword.value.isBlank()
+                if (
+                    fullName.value.isBlank() || phoneNumber.value.isBlank() ||
+                    email.value.isBlank() || password.value.isBlank() || confirmPassword.value.isBlank()
                 ) {
                     Toast.makeText(context, "Please fill all fields.", Toast.LENGTH_SHORT).show()
                 } else if (password.value != confirmPassword.value) {
@@ -175,7 +179,7 @@ fun SignupScreen(
                         .addOnCompleteListener { task ->
                             if (task.isSuccessful) {
                                 val uid = auth.currentUser?.uid ?: return@addOnCompleteListener
-                                val userData = hashMapOf(
+                                val userData = mapOf(
                                     "uid" to uid,
                                     "name" to fullName.value,
                                     "email" to email.value,
@@ -187,7 +191,7 @@ fun SignupScreen(
                                 firestore.collection("users").document(uid)
                                     .set(userData)
                                     .addOnSuccessListener {
-                                        viewModel.setUsername(fullName.value)
+                                        viewModel.setUsername(fullName.value) // 🔥 Update ViewModel
                                         Toast.makeText(context, "Signup successful!", Toast.LENGTH_SHORT).show()
                                         navController.navigate("home") {
                                             popUpTo(0) { inclusive = true }

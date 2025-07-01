@@ -55,16 +55,16 @@ fun AppDrawer(
             onItemSelected("settings")
         }
 
-        DrawerItem("🚪 Log out") {
-            FirebaseAuth.getInstance().signOut()
-            navController.navigate("login") {
-                popUpTo(0) { inclusive = true } // clears backstack
-            }
-        }
-        DrawerItem("💬 Chatbot") {
-            navController.navigate("chatbot")
-            closeDrawer()
-        }
+//        DrawerItem("🚪 Log out") {
+//            FirebaseAuth.getInstance().signOut()
+//            navController.navigate("login") {
+//                popUpTo(0) { inclusive = true } // clears backstack
+//            }
+//        }
+//        DrawerItem("💬 Chatbot") {
+//            navController.navigate("chatbot")
+//            closeDrawer()
+//        }
 
 
         Spacer(modifier = Modifier.weight(1f))

@@ -42,6 +42,7 @@ fun ClickableWarning(onClick: () -> Unit) {
         contentScale = ContentScale.Fit
     )
 }
+
 @Composable
 fun GuardianAngelMainScreen(
     onMenuClick: () -> Unit,
@@ -93,7 +94,7 @@ fun GuardianAngelMainScreen(
                 PrefsManager.saveContacts(context, formattedList)
                 FirebaseHelper.saveContact(it.number, it.name)
             } else {
-                Toast.makeText(context, "⚠️ Contact already added or limit reached.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "⚠️ Contact already added", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -236,33 +237,35 @@ fun GuardianAngelMainScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(9.dp))
 
             Text("Send SOS", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1B41))
             Text("Press button for help", color = Color(0xFF1A1B41), fontSize = 14.sp)
         }
 
-        // 🔘 Bottom Fixed Buttons
+        // ✅ Bottom navigation (normal buttons, no animation)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .background(Color.White)
+                .background(Color(0xFFE8F5E9))
                 .padding(12.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             Button(
                 onClick = { navController.navigate("home_ui") },
                 colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF1A1B41))
+
+
             ) {
-                Text("🏠 Home", color = Color.White)
+                Text("   🏠 Home   ", color = Color.White)
             }
 
             Button(
                 onClick = { navController.navigate("chatbot") },
                 colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF1A1B41))
             ) {
-                Text("🤖 Chatbot", color = Color.White)
+                Text(" 🤖 Guardian-Gpt ", color = Color.White,)
             }
         }
     }
