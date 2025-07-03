@@ -5,7 +5,6 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.services)
-
 }
 
 android {
@@ -18,13 +17,21 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // ✅ Load API key from local.properties safely
         val localProperties = Properties()
         val localPropertiesFile = rootProject.file("local.properties")
         if (localPropertiesFile.exists()) {
             localProperties.load(localPropertiesFile.inputStream())
-            buildConfigField("String", "OPENAI_API_KEY", "\"${localProperties["OPENAI_API_KEY"]}\"")
+            val openAiKey = localProperties.getProperty("OPENAI_API_KEY")
+            if (openAiKey != null) {
+                buildConfigField("String", "OPENAI_API_KEY", "\"$openAiKey\"")
+            } else {
+                throw GradleException("OPENAI_API_KEY not found in local.properties")
+            }
+        } else {
+            throw GradleException("local.properties file not found!")
         }
     }
 
@@ -37,22 +44,24 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     kotlinOptions {
         jvmTarget = "11"
     }
+
     buildFeatures {
         compose = true
-
-    }
-    buildFeatures {
         buildConfig = true
     }
 }
-dependencies{
+
+dependencies {
+    // ✅ AndroidX + Compose core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -69,99 +78,48 @@ dependencies{
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    dependencies {
-        // Jetpack Compose
-        implementation("androidx.activity:activity-compose:1.8.1")
-        implementation ("androidx.compose.ui:ui:1.6.0")
-        implementation ("androidx.compose.material:material:1.6.0")
-        implementation ("androidx.compose.ui:ui-tooling-preview:1.6.0")
+    // ✅ Jetpack Compose UI & Tooling
+    implementation("androidx.compose.ui:ui:1.6.0")
+    implementation("androidx.compose.material:material:1.6.0")
+    implementation("androidx.compose.material:material-icons-extended:1.6.1")
+    implementation("androidx.compose.ui:ui-tooling-preview:1.6.0")
+    debugImplementation("androidx.compose.ui:ui-tooling:1.6.0")
 
-        // ViewModel with Compose
-        implementation ("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
-        implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    // ✅ Lifecycle + ViewModel Compose
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    implementation("androidx.compose.runtime:runtime-livedata:1.5.1")
 
-        // Location services (for getting GPS)
-        implementation ("com.google.android.gms:play-services-location:21.0.1")
+    // ✅ Firebase (auth, firestore, database)
+    implementation(platform("com.google.firebase:firebase-bom:32.7.2"))
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-database-ktx")
 
-        // Optional - Permissions handling (accompanist)
-        implementation ("com.google.accompanist:accompanist-permissions:0.28.0")
+    // ✅ Navigation
+    implementation("androidx.navigation:navigation-compose:2.7.6")
 
-        // Debugging
-        debugImplementation ("androidx.compose.ui:ui-tooling:1.6.0")
-        //location
-        implementation ("com.google.android.gms:play-services-location:21.0.1")
-        implementation ("com.google.android.gms:play-services-location:21.0.1")
+    // ✅ Location services
+    implementation("com.google.android.gms:play-services-location:21.0.1")
 
-        implementation ("androidx.activity:activity-compose:1.7.2")
-        implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
-        implementation ("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
-        implementation ("androidx.core:core-ktx:1.12.0")
-        implementation ("androidx.compose.material3:material3:1.1.2")
-        implementation( "androidx.compose.ui:ui:1.5.4")
-        implementation ("androidx.compose.ui:ui-tooling-preview:1.5.4")
-        implementation( "androidx.navigation:navigation-compose:2.7.6")
+    // ✅ Permissions
+    implementation("com.google.accompanist:accompanist-permissions:0.28.0")
 
-        implementation ("androidx.activity:activity-compose:1.7.2")
-        implementation ("androidx.compose.material3:material3:1.1.0")
-        implementation ("com.google.firebase:firebase-auth-ktx:22.3.1")
-        implementation ("com.google.firebase:firebase-firestore-ktx:24.10.2")
-        implementation ("com.google.android.gms:play-services-location:21.0.1")
+    // ✅ Accompanist System UI & Animation
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.33.1-alpha")
+    implementation("com.google.accompanist:accompanist-navigation-animation:0.34.0")
 
-        implementation ("androidx.core:core-ktx:1.12.0")
-        implementation( "androidx.compose.ui:ui:1.5.1")
-        implementation( "androidx.compose.material:material:1.5.1")
-        implementation( "androidx.activity:activity-compose:1.7.2")
-        implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.6.1")
-        implementation( "androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
-        implementation( "com.google.firebase:firebase-auth-ktx:22.3.0")
-        implementation ("com.google.firebase:firebase-firestore-ktx:24.10.0")
-        implementation( "com.google.firebase:firebase-database-ktx:20.3.0")
+    // ✅ DataStore
+    implementation("androidx.datastore:datastore-preferences:1.1.0-alpha05")
 
-        implementation( "androidx.navigation:navigation-compose:2.7.3")
+    // ✅ Appcompat
+    implementation("androidx.appcompat:appcompat:1.6.1")
 
-        implementation ("androidx.datastore:datastore-preferences:1.1.0-alpha05")
-        implementation ("androidx.compose.runtime:runtime-livedata:1.5.1")
-        dependencies {
-            implementation(platform("com.google.firebase:firebase-bom:32.3.1"))
-            implementation("com.google.firebase:firebase-auth-ktx")
-            implementation("com.google.firebase:firebase-firestore-ktx")
-        }
-        implementation(platform ("com.google.firebase:firebase-bom:32.7.2"))
-        implementation ("com.google.firebase:firebase-auth-ktx")
-        implementation ("com.google.firebase:firebase-firestore-ktx")
+    // ✅ Networking
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("org.json:json:20210307")
 
-        // SMS + Location
-        implementation ("com.google.android.gms:play-services-location:21.0.1")
-
-
-        // Accompanist for theme/dark mode switch
-        implementation ("com.google.accompanist:accompanist-systemuicontroller:0.33.1-alpha")
-        //settingutils
-        implementation ("androidx.appcompat:appcompat:1.6.1")
-
-        implementation ("androidx.activity:activity-compose:1.8.0")
-        implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.6.1")
-        implementation ("androidx.core:core-ktx:1.10.1")
-
-        implementation ("androidx.compose.material3:material3:1.1.2")
-        implementation ("androidx.compose.material:material-icons-extended:1.6.1")
-        implementation ("androidx.compose.ui:ui-tooling-preview")
-
-        implementation ("androidx.compose.animation:animation:1.6.0")
-        implementation ("com.google.code.gson:gson:2.10.1")
- //chatbot
-        //implementation("com.some.chatbot:library:1.0.0")
-        // ✅ OkHttp for networking
-        implementation("com.squareup.okhttp3:okhttp:4.12.0")
-        implementation("org.json:json:20210307") // for JSONObject, JSONArray
-
-
-        //transition
-            implementation("com.google.accompanist:accompanist-navigation-animation:0.34.0")
-
-
-
-
-    }
-
+    // ✅ Other utilities
+    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("androidx.compose.animation:animation:1.6.0")
 }

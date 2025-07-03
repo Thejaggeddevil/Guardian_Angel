@@ -1,20 +1,18 @@
 package com.mansi.guardianangel
 
-
-
+import com.mansi.guardianangel.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.*
 import org.json.JSONArray
 import org.json.JSONObject
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
-
 object OpenAIHelper {
 
-    // 🟢 Paste your API Key here
-    private const val apiKey = "BuildConfig.CHATBOT_API_KEY"
 
-    // ✅ OpenRouter DeepSeek Endpoint
+    private val apiKey = BuildConfig.OPENAI_API_KEY
+    // ✅ API Key from BuildConfig
+
     private const val apiUrl = "https://openrouter.ai/api/v1/chat/completions"
 
     suspend fun getOpenAIResponse(prompt: String): String = withContext(Dispatchers.IO) {
@@ -22,7 +20,7 @@ object OpenAIHelper {
             val client = OkHttpClient()
 
             val requestBody = JSONObject()
-                .put("model", "deepseek/deepseek-r1:free") // ✅ Sahi model name
+                .put("model", "deepseek/deepseek-r1:free")
                 .put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", prompt)))
                 .put("temperature", 0.7)
 
@@ -35,7 +33,7 @@ object OpenAIHelper {
                 .url(apiUrl)
                 .addHeader("Authorization", apiKey)
                 .addHeader("Content-Type", "application/json")
-                .addHeader("HTTP-Referer", "https://guardian-gpt.app") // 🔥 Required by OpenRouter
+                .addHeader("HTTP-Referer", "https://guardian-gpt.app")
                 .addHeader("X-Title", "GuardianGPT")
                 .post(body)
                 .build()
