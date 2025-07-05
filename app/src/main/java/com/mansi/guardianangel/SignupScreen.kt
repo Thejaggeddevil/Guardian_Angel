@@ -42,7 +42,7 @@ fun SignupScreen(
     val confirmPasswordVisible = remember { mutableStateOf(false) }
 
     val languageOptions = listOf("English", "Hindi")
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(true) }
     val language = remember { mutableStateOf("English") }
 
     var isLoading by remember { mutableStateOf(false) }

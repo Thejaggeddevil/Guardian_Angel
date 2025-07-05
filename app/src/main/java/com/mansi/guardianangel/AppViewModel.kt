@@ -17,6 +17,8 @@ import java.util.*
 
 class AppViewModel : ViewModel() {
 
+    private val TAG = "AppViewModel"
+
     var isDarkMode = mutableStateOf(false)
         private set
 
@@ -28,21 +30,21 @@ class AppViewModel : ViewModel() {
 
     val sosHistory = mutableStateListOf<SOsData>()
 
-    // ✅ Set username + cache locally
+    // ✅ Set + optionally persist locally
     fun setUsername(name: String, context: Context? = null) {
         _username.value = name
         context?.let {
             PrefsManager.setUsername(it, name)
-            Log.d("AppViewModel", "✅ Username saved locally: $name")
+            Log.d(TAG, "✅ Username saved locally: $name")
         }
     }
 
-    // ✅ Load from Firestore OR fallback to local
+    // ✅ Load from Firestore or fallback to local storage
     fun loadUsername(context: Context) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid
         if (uid.isNullOrBlank()) {
             _username.value = PrefsManager.getUsername(context)
-            Log.w("AppViewModel", "⚠️ No UID, loaded from prefs: ${_username.value}")
+            Log.w(TAG, "⚠️ UID is null. Loaded from local prefs: ${_username.value}")
             return
         }
 
@@ -55,19 +57,18 @@ class AppViewModel : ViewModel() {
                 if (!name.isNullOrBlank()) {
                     _username.value = name
                     PrefsManager.setUsername(context, name)
-                    Log.d("AppViewModel", "✅ Username loaded from Firestore: $name")
+                    Log.d(TAG, "✅ Username loaded from Firestore: $name")
                 } else {
                     _username.value = PrefsManager.getUsername(context)
-                    Log.w("AppViewModel", "⚠️ Firestore name missing, using prefs: ${_username.value}")
+                    Log.w(TAG, "⚠️ Firestore name is blank. Used local fallback: ${_username.value}")
                 }
             }
             .addOnFailureListener {
                 _username.value = PrefsManager.getUsername(context)
-                Log.e("AppViewModel", "❌ Firestore fetch failed: ${it.message}")
+                Log.e(TAG, "❌ Firestore error: ${it.message}")
             }
     }
 
-    // ✅ Save SOS in Firebase + update list
     fun addSOSRecord(record: SOsData) {
         sosHistory.add(0, record)
         FirebaseHelper.saveSOS(record)
@@ -108,7 +109,6 @@ class AppViewModel : ViewModel() {
         (context as? Activity)?.finish()
     }
 
-    // ✅ Send SOS SMS + Save History
     fun sendSOS(context: Context, contacts: List<String>) {
         LocationUtils.getLastLocation(context) { location ->
             val timeStamp = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(Date())

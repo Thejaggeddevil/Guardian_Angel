@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -126,6 +127,22 @@ fun LoginScreen(navController: NavController, viewModel: AppViewModel) {
                                 .addOnCompleteListener { task ->
                                     isLoading = false
                                     if (task.isSuccessful) {
+                                        val uid = auth.currentUser?.uid
+                                        if (uid != null) {
+                                            val firestore = FirebaseFirestore.getInstance()
+                                            firestore.collection("users").document(uid).get()
+                                                .addOnSuccessListener { doc ->
+                                                    val name = doc.getString("name")
+                                                    if (name.isNullOrBlank()) {
+                                                        // TODO: Prompt user for name input. For now, set as 'User'.
+                                                        firestore.collection("users").document(uid)
+                                                            .update("name", "User")
+                                                        viewModel.setUsername("User", context)
+                                                    } else {
+                                                        viewModel.setUsername(name, context)
+                                                    }
+                                                }
+                                        }
                                         Toast.makeText(context, "✅ Login Successful", Toast.LENGTH_SHORT).show()
                                         navController.navigate("home") {
                                             popUpTo("login") { inclusive = true }
