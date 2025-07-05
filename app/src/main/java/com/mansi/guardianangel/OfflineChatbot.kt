@@ -1,13 +1,21 @@
 package com.mansi.guardianangel
 
-
-
 object OfflineChatbot {
 
     fun getFallbackReply(input: String): String {
         val lowerInput = input.lowercase()
 
         return when {
+            // ✅ Intro detection (name, creator, purpose, identity)
+            listOf(
+                "your name", "tumhara naam", "tum kon ho", "who are you", "what are you", "kaun ho",
+                "creator", "kisne banaya", "who made you", "who created you", "why you exist", "tumhe kisne banaya"
+            ).any { it in lowerInput } -> """
+                👋 Hello! I'm Guardian — your AI-powered safety assistant.
+                I was created with care by Indian Android developer!. 🇮🇳
+                My mission is to assist, guide, and protect you — whether you're in danger or just curious. 🛡️
+            """.trimIndent()
+
             listOf("help", "madad", "sahayata", "sos", "assist", "problem").any { it in lowerInput } ->
                 "I'm here to help you. Please stay calm. Aap please thoda detail mein batayein ki kya dikkat hai."
 

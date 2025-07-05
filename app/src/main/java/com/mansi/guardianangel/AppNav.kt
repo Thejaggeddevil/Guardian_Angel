@@ -106,6 +106,10 @@ fun NavGraph(
             ChatbotScreen(navController = navController)
         }
 
+        composable("chatbot_history") {
+            HistoryScreen(navController = navController)
+        }
+
         composable("home_ui") {
             GuardianAngelMainScreen(
                 onMenuClick = { navController.navigate("menudrawer") },

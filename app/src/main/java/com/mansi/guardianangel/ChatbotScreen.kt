@@ -1,6 +1,5 @@
 package com.mansi.guardianangel
 
-
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -9,8 +8,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,18 +27,21 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 val LightGreen = Color(0xFFE8F5E9)
 val MidnightBlue = Color(0xFF1A1B41)
 val RedButton = Color(0xFFEF5350)
 
-data class Message(val text: String, val isUser: Boolean)
+data class Message(val text: String, val isUser: Boolean, val isTyping: Boolean = false)
 
 @Composable
 fun ChatbotScreen(navController: NavController) {
     var userInput by remember { mutableStateOf(TextFieldValue("")) }
     var messages by remember { mutableStateOf(listOf<Message>()) }
+    var isTyping by remember { mutableStateOf(false) }
+    var animatedReply by remember { mutableStateOf("") }
     val context = LocalContext.current
 
     Column(
@@ -46,28 +50,37 @@ fun ChatbotScreen(navController: NavController) {
             .background(LightGreen)
             .padding(8.dp)
     ) {
-        // Header
-        Text(
-            text = "🤖 Guardian GPT",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            color = MidnightBlue,
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),
-            textAlign = TextAlign.Center
-        )
+                .padding(vertical = 12.dp, horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = { navController.popBackStack() }) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MidnightBlue)
+            }
 
-        Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "🤖 Guardian GPT",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = MidnightBlue,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center
+            )
 
-        // Chat area
+            TextButton(onClick = { navController.navigate("chatbot_history") }) {
+                Text("History", color = RedButton, fontWeight = FontWeight.SemiBold)
+            }
+        }
+
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
         ) {
-            if (messages.isEmpty()) {
+            if (messages.isEmpty() && !isTyping) {
                 Text(
                     text = "What can I help with?",
                     fontSize = 18.sp,
@@ -76,18 +89,18 @@ fun ChatbotScreen(navController: NavController) {
                     modifier = Modifier.align(Alignment.Center)
                 )
             } else {
-                LazyColumn(
-                    reverseLayout = true,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items(messages.reversed()) { message ->
+                LazyColumn(reverseLayout = true, modifier = Modifier.fillMaxSize()) {
+                    val displayMessages = messages + if (isTyping) listOf(
+                        Message(animatedReply, isUser = false, isTyping = true)
+                    ) else emptyList()
+
+                    items(displayMessages.reversed()) { message ->
                         MessageBubble(message)
                     }
                 }
             }
         }
 
-        // Input field and send button
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -102,9 +115,7 @@ fun ChatbotScreen(navController: NavController) {
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 12.dp),
-                placeholder = {
-                    Text("Ask anything")
-                },
+                placeholder = { Text("Ask anything") },
                 colors = TextFieldDefaults.textFieldColors(
                     backgroundColor = Color.Transparent,
                     focusedIndicatorColor = Color.Transparent,
@@ -120,6 +131,8 @@ fun ChatbotScreen(navController: NavController) {
                     val inputText = userInput.text.trim()
                     if (inputText.isNotEmpty()) {
                         messages = messages + Message(inputText, true)
+                        isTyping = true
+                        animatedReply = ""
 
                         CoroutineScope(Dispatchers.Main).launch {
                             val reply = if (isInternetAvailable(context)) {
@@ -128,12 +141,20 @@ fun ChatbotScreen(navController: NavController) {
                                 OfflineChatbot.getFallbackReply(inputText)
                             }
 
-                            messages = messages + Message(reply, false)
+                            for (i in 1..reply.length) {
+                                animatedReply = reply.substring(0, i)
+                                delay(30L)
+                            }
+
+                            messages = messages + Message(animatedReply, isUser = false)
+                            isTyping = false
+                            animatedReply = ""
                         }
 
                         userInput = TextFieldValue("")
                     }
-                }
+                },
+                enabled = !isTyping
             ) {
                 Icon(
                     imageVector = Icons.Default.Send,
@@ -154,21 +175,45 @@ fun MessageBubble(message: Message) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(6.dp),
-        horizontalArrangement = alignment
+        horizontalArrangement = alignment,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = message.text,
-            modifier = Modifier
-                .background(bubbleColor, shape = RoundedCornerShape(10.dp))
-                .padding(10.dp)
-                .widthIn(max = 280.dp),
-            fontSize = 16.sp,
-            color = MidnightBlue
-        )
+        if (!message.isUser && message.isTyping) {
+            CircularProgressIndicator(
+                color = RedButton,
+                modifier = Modifier
+                    .size(18.dp)
+                    .padding(end = 6.dp)
+            )
+        }
+
+        // ✅ Bot ke message ke liye selectable
+        if (!message.isUser && !message.isTyping) {
+            SelectionContainer {
+                Text(
+                    text = message.text,
+                    modifier = Modifier
+                        .background(bubbleColor, shape = RoundedCornerShape(10.dp))
+                        .padding(10.dp)
+                        .widthIn(max = 280.dp),
+                    fontSize = 16.sp,
+                    color = MidnightBlue
+                )
+            }
+        } else {
+            Text(
+                text = message.text,
+                modifier = Modifier
+                    .background(bubbleColor, shape = RoundedCornerShape(10.dp))
+                    .padding(10.dp)
+                    .widthIn(max = 280.dp),
+                fontSize = 16.sp,
+                color = MidnightBlue
+            )
+        }
     }
 }
 
-// ✅ Internet check helper
 fun isInternetAvailable(context: Context): Boolean {
     val connectivityManager =
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
