@@ -20,4 +20,10 @@ Guardian Angel is an intelligent safety and wellness companion Android applicati
 | Networking   | OkHttp, JSON                                      |
 | Location     | Google Play Services Location API                 |
 | Build System | Gradle with Kotlin DSL                            |
-![Home](screenshots/home.png)
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+![home](https://github.com/user-attachments/assets/4e4fab29-0016-408d-b462-9267dc7d15e0)
+
+
+![chatbot](https://github.com/user-attachments/assets/de28bf5b-d703-4dd4-a2be-a5d381efb449)
+
